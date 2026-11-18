@@ -1,9 +1,9 @@
 #pragma once
 #include <opencv2/opencv.hpp>
 #include <swarm_msgs/Pose.h>
-#include <geometry_msgs/Pose.h>
-#include <geometry_msgs/Point32.h>
-#include <swarm_msgs/LoopEdge.h>
+#include <geometry_msgs/msg/pose.hpp>
+#include <geometry_msgs/msg/point32.hpp>
+#include <swarm_msgs/msg/loop_edge.hpp>
 #include "lcm_gen/LoopEdge_t.hpp"
 #include "lcm_gen/ImageArrayDescriptor_t.hpp"
 #include "lcm_gen/ImageDescriptor_t.hpp"
@@ -11,12 +11,13 @@
 #include "lcm_gen/ImageDescriptorHeader_t.hpp"
 #include "lcm_gen/Point2d_t.hpp"
 #include "lcm_gen/Point3d_t.hpp"
-#include <swarm_msgs/ImageArrayDescriptor.h>
-#include <swarm_msgs/ImageDescriptor.h>
+#include <swarm_msgs/msg/image_array_descriptor.hpp>
+#include <swarm_msgs/msg/image_descriptor.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include "base_types.hpp"
 using Swarm::TsType;
 
-inline Pose_t fromROSPose(const geometry_msgs::Pose & pose) {
+inline Pose_t fromROSPose(const geometry_msgs::msg::Pose & pose) {
     Pose_t t;
     t.orientation[0] = pose.orientation.x;
     t.orientation[1] = pose.orientation.y;
@@ -29,8 +30,8 @@ inline Pose_t fromROSPose(const geometry_msgs::Pose & pose) {
     return t;
 }
 
-inline geometry_msgs::Pose toROSPose(const Pose_t & t) {
-    geometry_msgs::Pose pose;
+inline geometry_msgs::msg::Pose toROSPose(const Pose_t & t) {
+    geometry_msgs::msg::Pose pose;
     pose.orientation.x = t.orientation[0];
     pose.orientation.y = t.orientation[1];
     pose.orientation.z = t.orientation[2];
@@ -42,14 +43,14 @@ inline geometry_msgs::Pose toROSPose(const Pose_t & t) {
     return pose;
 }
 
-inline geometry_msgs::Pose toROSPose(const Swarm::Pose & t) {
+inline geometry_msgs::msg::Pose toROSPose(const Swarm::Pose & t) {
     return t.toROS();
 }
 
-inline std::vector<geometry_msgs::Point32> toROSPoints(const std::vector<Eigen::Vector3d> & src) {
-    std::vector<geometry_msgs::Point32> dst;
+inline std::vector<geometry_msgs::msg::Point32> toROSPoints(const std::vector<Eigen::Vector3d> & src) {
+    std::vector<geometry_msgs::msg::Point32> dst;
      for (auto pt : src) {
-        geometry_msgs::Point32 pt2;
+        geometry_msgs::msg::Point32 pt2;
         pt2.x = pt.x();
         pt2.y = pt.y();
         pt2.z = pt.z();
@@ -58,10 +59,10 @@ inline std::vector<geometry_msgs::Point32> toROSPoints(const std::vector<Eigen::
     return dst;
 }
 
-inline std::vector<geometry_msgs::Point32> toROSPoints(const std::vector<cv::Point2f> & src) {
-    std::vector<geometry_msgs::Point32> dst;
+inline std::vector<geometry_msgs::msg::Point32> toROSPoints(const std::vector<cv::Point2f> & src) {
+    std::vector<geometry_msgs::msg::Point32> dst;
      for (auto pt : src) {
-        geometry_msgs::Point32 pt2;
+        geometry_msgs::msg::Point32 pt2;
         pt2.x = pt.x;
         pt2.y = pt.y;
         pt2.z = 0.0;
@@ -70,10 +71,10 @@ inline std::vector<geometry_msgs::Point32> toROSPoints(const std::vector<cv::Poi
     return dst;
 }
 
-inline std::vector<geometry_msgs::Point32> toROSPoints(const std::vector<Eigen::Vector2d> & src) {
-    std::vector<geometry_msgs::Point32> dst;
+inline std::vector<geometry_msgs::msg::Point32> toROSPoints(const std::vector<Eigen::Vector2d> & src) {
+    std::vector<geometry_msgs::msg::Point32> dst;
      for (auto pt : src) {
-        geometry_msgs::Point32 pt2;
+        geometry_msgs::msg::Point32 pt2;
         pt2.x = pt.x();
         pt2.y = pt.y();
         pt2.z = 0.0;
@@ -148,7 +149,7 @@ inline std::vector<cv::Point2f> toCV(std::vector<Vector2d> arr) {
     return _arr;
 }
 
-inline std::vector<cv::Point2f> toCV(const std::vector<geometry_msgs::Point32> & src) {
+inline std::vector<cv::Point2f> toCV(const std::vector<geometry_msgs::msg::Point32> & src) {
     std::vector<cv::Point2f> dst;
     for (auto pt : src) {
         dst.push_back(cv::Point2f(pt.x, pt.y));
@@ -174,15 +175,20 @@ inline std::vector<Eigen::Vector3d> toEigen3d(const std::vector<T> & src) {
     return dst;
 }
 
-inline ros::Time toROSTime(Time_t _time) {
-    return ros::Time(_time.sec, _time.nsec);
+inline rclcpp::Time toROSTime(Time_t _time) {
+    return rclcpp::Time(_time.sec, _time.nsec, RCL_ROS_TIME);
 }
 
-inline Time_t toLCMTime(ros::Time _time) {
+inline Time_t toLCMTime(const rclcpp::Time &_time) {
     Time_t t;
-    t.sec = _time.sec;
-    t.nsec = _time.nsec;
+    const auto nanoseconds = _time.nanoseconds();
+    t.sec = nanoseconds / 1000000000LL;
+    t.nsec = nanoseconds % 1000000000LL;
     return t;
+}
+
+inline Time_t toLCMTime(const builtin_interfaces::msg::Time &stamp) {
+    return toLCMTime(rclcpp::Time(stamp, RCL_ROS_TIME));
 }
 
 inline std::vector<cv::KeyPoint> to_keypoints(const std::vector<cv::Point2f> & pts) {
@@ -195,8 +201,8 @@ inline std::vector<cv::KeyPoint> to_keypoints(const std::vector<cv::Point2f> & p
     return kps;
 }
 
-inline swarm_msgs::LoopEdge toROSLoopEdge(const LoopEdge_t & loop_con) {
-    swarm_msgs::LoopEdge loop_conn;
+inline swarm_msgs::msg::LoopEdge toROSLoopEdge(const LoopEdge_t & loop_con) {
+    swarm_msgs::msg::LoopEdge loop_conn;
     loop_conn.ts_a =  toROSTime(loop_con.ts_a);
     loop_conn.ts_b =  toROSTime(loop_con.ts_b);
 
@@ -224,7 +230,7 @@ inline swarm_msgs::LoopEdge toROSLoopEdge(const LoopEdge_t & loop_con) {
     return loop_conn;
 }
 
-inline LoopEdge_t toLCMLoopEdge(const swarm_msgs::LoopEdge & loop_con) {
+inline LoopEdge_t toLCMLoopEdge(const swarm_msgs::msg::LoopEdge & loop_con) {
     LoopEdge_t loop_conn;
     loop_conn.ts_a =  toLCMTime(loop_con.ts_a);
     loop_conn.ts_b =  toLCMTime(loop_con.ts_b);

@@ -1,9 +1,10 @@
 #pragma once
 #include <Eigen/Eigen>
 #include <assert.h>
+#include <iostream>
 #include <map>
 #include <vector>
-#include <geometry_msgs/Pose.h>
+#include <geometry_msgs/msg/pose.hpp>
 #include "lcm_gen/Pose_t.hpp"
 
 using namespace Eigen;
@@ -238,7 +239,7 @@ public:
     }
 
 
-    Pose(geometry_msgs::Point pos, double yaw) {
+    Pose(geometry_msgs::msg::Point pos, double yaw) {
         this->attitude = AngleAxisd(yaw, Vector3d::UnitZ());
         position.x() = pos.x;
         position.y() = pos.y;
@@ -248,7 +249,7 @@ public:
         update_yaw();
     }
 
-    Pose(geometry_msgs::Point pos, geometry_msgs::Quaternion orientation) {
+    Pose(geometry_msgs::msg::Point pos, geometry_msgs::msg::Quaternion orientation) {
         position.x() = pos.x;
         position.y() = pos.y;
         position.z() = pos.z;
@@ -278,7 +279,7 @@ public:
         update_yaw();
     }
 
-    Pose(const geometry_msgs::Pose &p) {
+    Pose(const geometry_msgs::msg::Pose &p) {
         attitude.w() = p.orientation.w;
         attitude.x() = p.orientation.x;
         attitude.y() = p.orientation.y;
@@ -374,8 +375,8 @@ public:
         return a;
     }
 
-    geometry_msgs::Pose toROS() const {
-        geometry_msgs::Pose pose;
+    geometry_msgs::msg::Pose toROS() const {
+        geometry_msgs::msg::Pose pose;
         pose.orientation.w = attitude.w();
         pose.orientation.x = attitude.x();
         pose.orientation.y = attitude.y();

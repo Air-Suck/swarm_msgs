@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 int32 drone_id
 int32 camera_index
 int32 camera_id
@@ -15,6 +15,6 @@ int32 image_width
 int32 image_height
 uint8[] image
 
-Landmark[] landmarks
+swarm_msgs/Landmark[] landmarks
 
 bool prevent_adding_db

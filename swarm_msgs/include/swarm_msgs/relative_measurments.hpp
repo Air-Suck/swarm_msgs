@@ -1,9 +1,10 @@
 #pragma once
 #include "Pose.h"
 #include "base_types.hpp"
-#include <swarm_msgs/node_detected.h>
-#include <swarm_msgs/node_detected_xyzyaw.h>
-#include <swarm_msgs/LoopEdge.h>
+#include <swarm_msgs/msg/node_detected.hpp>
+#include <swarm_msgs/msg/node_detected_xyzyaw.hpp>
+#include <rclcpp/time.hpp>
+#include <swarm_msgs/msg/loop_edge.hpp>
 #include "utils.hpp"
 
 namespace Swarm {
@@ -14,8 +15,8 @@ public:
     TsType ts_b;
     FrameIdType keyframe_id_a;
     FrameIdType keyframe_id_b;
-    ros::Time stamp_a;
-    ros::Time stamp_b;
+    rclcpp::Time stamp_a{0, 0, RCL_ROS_TIME};
+    rclcpp::Time stamp_b{0, 0, RCL_ROS_TIME};
     int id_a; // drone_id
     int id_b; // drone_id
     Pose self_pose_a;
@@ -63,18 +64,18 @@ public:
     Matrix6d sqrt_inf_mat;
     Matrix6d cov_mat;
 
-    LoopEdge(swarm_msgs::LoopEdge loc, bool yaw_only = false) {
+    LoopEdge(swarm_msgs::msg::LoopEdge loc, bool yaw_only = false) {
         id = loc.id;
         id_a = loc.drone_id_a;
         id_b = loc.drone_id_b;
-        ts_a = loc.ts_a.toNSec();
-        ts_b = loc.ts_b.toNSec();
+        ts_a = rclcpp::Time(loc.ts_a, RCL_ROS_TIME).nanoseconds();
+        ts_b = rclcpp::Time(loc.ts_b, RCL_ROS_TIME).nanoseconds();
 
         keyframe_id_a = loc.keyframe_id_a;
         keyframe_id_b = loc.keyframe_id_b;
 
-        stamp_a = loc.ts_a;
-        stamp_b = loc.ts_b;
+        stamp_a = rclcpp::Time(loc.ts_a, RCL_ROS_TIME);
+        stamp_b = rclcpp::Time(loc.ts_b, RCL_ROS_TIME);
 
         relative_pose = Pose(loc.relative_pose);
 
@@ -103,15 +104,15 @@ public:
         setCovariance(cov);
     }
 
-    LoopEdge(const swarm_msgs::node_detected & loc)  {
+    LoopEdge(const swarm_msgs::msg::NodeDetected & loc)  {
         id = loc.id;
         id_a = loc.self_drone_id;
         id_b = loc.remote_drone_id;
-        ts_a = loc.header.stamp.toNSec();
-        ts_b = loc.header.stamp.toNSec();
+        ts_a = rclcpp::Time(loc.header.stamp, RCL_ROS_TIME).nanoseconds();
+        ts_b = rclcpp::Time(loc.header.stamp, RCL_ROS_TIME).nanoseconds();
 
-        stamp_a = loc.header.stamp;
-        stamp_b = loc.header.stamp;
+        stamp_a = rclcpp::Time(loc.header.stamp, RCL_ROS_TIME);
+        stamp_b = rclcpp::Time(loc.header.stamp, RCL_ROS_TIME);
 
         relative_pose = Pose(loc.relative_pose.pose);
 
@@ -133,8 +134,8 @@ public:
         setCovariance(cov);
     }
 
-    swarm_msgs::LoopEdge toROS() const {
-        swarm_msgs::LoopEdge loc;
+    swarm_msgs::msg::LoopEdge toROS() const {
+        swarm_msgs::msg::LoopEdge loc;
         loc.id = id;
         loc.drone_id_a = id_a;
         loc.drone_id_b = id_b;
@@ -151,20 +152,20 @@ public:
         return loc;
     }
 
-    LoopEdge(swarm_msgs::LoopEdge loc, Eigen::Matrix6d _inf_mat):
+    LoopEdge(swarm_msgs::msg::LoopEdge loc, Eigen::Matrix6d _inf_mat):
         inf_mat(_inf_mat)
     {
         id = loc.id;
         id_a = loc.drone_id_a;
         id_b = loc.drone_id_b;
-        ts_a = loc.ts_a.toNSec();
-        ts_b = loc.ts_b.toNSec();
+        ts_a = rclcpp::Time(loc.ts_a, RCL_ROS_TIME).nanoseconds();
+        ts_b = rclcpp::Time(loc.ts_b, RCL_ROS_TIME).nanoseconds();
 
         keyframe_id_a = loc.keyframe_id_a;
         keyframe_id_b = loc.keyframe_id_b;
 
-        stamp_a = loc.ts_a;
-        stamp_b = loc.ts_b;
+        stamp_a = rclcpp::Time(loc.ts_a, RCL_ROS_TIME);
+        stamp_b = rclcpp::Time(loc.ts_b, RCL_ROS_TIME);
 
         relative_pose = loc.relative_pose;
         self_pose_a = Pose(loc.self_pose_a);
@@ -349,17 +350,17 @@ public:
     Pose extrinsic; //Extrinsic from IMU to Cam
     Pose GC = Swarm::Pose(Vector3d(-0.06, 0, 0), Quaterniond::Identity()); //Extrinsic from IMU to GC(e.g. detection center.)
 
-    DroneDetection(const swarm_msgs::node_detected_xyzyaw & nd, bool _enable_dpose, Eigen::Vector3d _CG, bool _enable_depth = true):
+    DroneDetection(const swarm_msgs::msg::NodeDetectedXyzyaw & nd, bool _enable_dpose, Eigen::Vector3d _CG, bool _enable_depth = true):
         enable_dpose(_enable_dpose)
     {
         id = nd.id;
         id_a = nd.self_drone_id;
         id_b = nd.remote_drone_id;
-        ts_a = nd.header.stamp.toNSec();
-        ts_b = nd.header.stamp.toNSec();
+        ts_a = rclcpp::Time(nd.header.stamp, RCL_ROS_TIME).nanoseconds();
+        ts_b = rclcpp::Time(nd.header.stamp, RCL_ROS_TIME).nanoseconds();
 
-        stamp_a = nd.header.stamp;
-        stamp_b = nd.header.stamp;
+        stamp_a = rclcpp::Time(nd.header.stamp, RCL_ROS_TIME);
+        stamp_b = rclcpp::Time(nd.header.stamp, RCL_ROS_TIME);
 
         probaility = nd.probaility;
         

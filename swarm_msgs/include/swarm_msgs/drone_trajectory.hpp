@@ -1,10 +1,10 @@
 #pragma once
 #include "Pose.h"
 #include "utils.hpp"
-#include <nav_msgs/Path.h>
-#include <swarm_msgs/DroneTraj.h>
+#include <nav_msgs/msg/path.hpp>
+#include <swarm_msgs/msg/drone_traj.hpp>
 #include "base_types.hpp"
-#include <ros/ros.h>
+#include <rclcpp/time.hpp>
 
 namespace Swarm {
 class DroneTrajectory {
@@ -18,7 +18,7 @@ class DroneTrajectory {
     bool is_traj_ego_motion = true; //If false, the is PGO traj.
     int drone_id = -1;
     int traj_points = 0;
-    nav_msgs::Path ros_path;
+    nav_msgs::msg::Path ros_path;
     std::string frame_id = "world";
 
     double pos_covariance_per_meter = 4e-3;
@@ -62,7 +62,8 @@ public:
         return trajectory;
     }
 
-    void push(ros::Time stamp, const Swarm::Pose & pose, FrameIdType frame_id = 0) {
+    void push(const rclcpp::Time &stamp, const Swarm::Pose &pose,
+              FrameIdType frame_id = 0) {
         if (cul_length.size() == 0) {
             cul_length.push_back(0);
         } else {
@@ -71,16 +72,16 @@ public:
             cul_length.push_back(dpose.pos().norm()+cul_length.back());
         }
 
-        TsType ts = stamp.toNSec();
+        TsType ts = stamp.nanoseconds();
         trajectory.push_back(pose);
         ts_trajectory.push_back(ts);
         frame_ids.push_back(frame_id);
-        stamp_trajectory.push_back(stamp.toSec());
+        stamp_trajectory.push_back(stamp.seconds());
         ts2index[ts] = ts_trajectory.size() - 1;
         id2index[frame_id] = frame_ids.size() - 1;
 
-        geometry_msgs::PoseStamped _pose_stamped;
-        _pose_stamped.header.stamp = ros::Time(stamp);
+        geometry_msgs::msg::PoseStamped _pose_stamped;
+        _pose_stamped.header.stamp = stamp;
         _pose_stamped.header.frame_id = frame_id;
         ros_path.header.stamp = _pose_stamped.header.stamp;
         _pose_stamped.pose = pose.toROS();
@@ -89,7 +90,8 @@ public:
     }
     
     void push(double stamp, const Swarm::Pose & pose, FrameIdType frame_id = 0) {
-        push(ros::Time(stamp), pose, frame_id);
+        push(rclcpp::Time(static_cast<int64_t>(stamp * 1e9), RCL_ROS_TIME),
+             pose, frame_id);
     }
 
     int trajectory_size() const {
@@ -102,13 +104,13 @@ public:
 
     std::pair<Swarm::Pose, Eigen::Matrix6d> get_relative_pose_by_ts(TsType tsa, TsType tsb, bool pose_4d=false) const {
         if (ts2index.find(tsa) == ts2index.end()) {
-            ROS_ERROR("get_relative_pose_by_ts %ld-%ld failed. tsa not found", tsa, tsb);
+            fprintf(stderr, "get_relative_pose_by_ts %ld-%ld failed: tsa not found\n", tsa, tsb);
             assert(false && "tsa not found. Use get_relative_pose_by_appro_ts instead");
             return std::make_pair(Swarm::Pose(), Eigen::Matrix6d());
         }
 
         if (ts2index.find(tsb) == ts2index.end()) {
-            ROS_ERROR("get_relative_pose_by_ts %ld-%ld failed. tsb not found", tsa, tsb);
+            fprintf(stderr, "get_relative_pose_by_ts %ld-%ld failed: tsb not found\n", tsa, tsb);
             assert(false && "tsb not found. Use get_relative_pose_by_appro_ts instead");
             return std::make_pair(Swarm::Pose(), Eigen::Matrix6d());
         }
@@ -125,13 +127,13 @@ public:
 
     std::pair<Swarm::Pose, Eigen::Matrix6d> get_relative_pose_by_frame_id(FrameIdType frame_id_a, FrameIdType frame_id_b, bool pose_4d=false) const {
         if (id2index.find(frame_id_a) == id2index.end()) {
-            ROS_ERROR("get_relative_pose_by_frame_id %ld-%ld failed. tsa not found", frame_id_a, frame_id_b);
+            fprintf(stderr, "get_relative_pose_by_frame_id %ld-%ld failed: first frame not found\n", frame_id_a, frame_id_b);
             assert(false && "frame_id_a not found. Use get_relative_pose_by_appro_ts instead");
             return std::make_pair(Swarm::Pose(), Eigen::Matrix6d());
         }
 
         if (id2index.find(frame_id_a) == id2index.end()) {
-            ROS_ERROR("get_relative_pose_by_frame_id %ld-%ld failed. tsb not found", frame_id_a, frame_id_b);
+            fprintf(stderr, "get_relative_pose_by_frame_id %ld-%ld failed: second frame not found\n", frame_id_a, frame_id_b);
             assert(false && "frame_id_b not found. Use get_relative_pose_by_appro_ts instead");
             return std::make_pair(Swarm::Pose(), Eigen::Matrix6d());
         }
@@ -225,13 +227,13 @@ public:
 
     double trajectory_length_by_ts(TsType tsa, TsType tsb) const {
         if (ts2index.find(tsa) == ts2index.end()) {
-            ROS_ERROR("trajectory_length_by_ts %ld-%ld failed. tsa not found", tsa, tsb);
+            fprintf(stderr, "trajectory_length_by_ts %ld-%ld failed: tsa not found\n", tsa, tsb);
             assert(false && "tsa not found. Use trajectory_length_by_appro_ts instead");
             return -1;
         }
 
         if (ts2index.find(tsb) == ts2index.end()) {
-            ROS_ERROR("trajectory_length_by_ts %ld-%ld failed. tsb not found", tsa, tsb);
+            fprintf(stderr, "trajectory_length_by_ts %ld-%ld failed: tsb not found\n", tsa, tsb);
             assert(false && "tsb not found. Use trajectory_length_by_appro_ts instead");
             exit(-1);
             return -1;
@@ -245,12 +247,12 @@ public:
 
     double trajectory_length_by_id(FrameIdType ida, FrameIdType idb) const {
         if (id2index.find(ida) == id2index.end()) {
-            ROS_WARN("trajectory_length_by_ts %ld-%ld failed. ida not found", ida, idb);
+            fprintf(stderr, "trajectory_length_by_id %ld-%ld failed: ida not found\n", ida, idb);
             return -1;
         }
 
         if (id2index.find(idb) == id2index.end()) {
-            ROS_WARN("trajectory_length_by_ts %ld-%ld failed. idb not found", ida, idb);
+            fprintf(stderr, "trajectory_length_by_id %ld-%ld failed: idb not found\n", ida, idb);
             return -1;
         }
 
@@ -290,13 +292,17 @@ public:
         return cov_mat;
     }
 
-    const nav_msgs::Path & get_ros_path() const {
+    const nav_msgs::msg::Path & get_ros_path() const {
         return ros_path;
     }
 
-    const swarm_msgs::DroneTraj toRos() const {
-        swarm_msgs::DroneTraj traj;
-        traj.header.stamp = ros::Time::now();
+    const swarm_msgs::msg::DroneTraj toRos() const {
+        swarm_msgs::msg::DroneTraj traj;
+        if (!stamp_trajectory.empty()) {
+            traj.header.stamp = rclcpp::Time(
+                static_cast<int64_t>(stamp_trajectory.back() * 1e9),
+                RCL_ROS_TIME);
+        }
         traj.header.frame_id = "map";
         traj.poses.resize(trajectory.size());
         traj.frame_stamps.resize(trajectory.size());
@@ -304,7 +310,9 @@ public:
         traj.drone_id = drone_id;
         for (int i = 0; i < trajectory.size(); i++) {
             traj.poses[i] = trajectory[i].toROS();
-            traj.frame_stamps[i] = ros::Time(stamp_trajectory[i]);
+            traj.frame_stamps[i] = rclcpp::Time(
+                static_cast<int64_t>(stamp_trajectory[i] * 1e9),
+                RCL_ROS_TIME);
             traj.frame_ids[i] = frame_ids[i];
         }
         return traj;

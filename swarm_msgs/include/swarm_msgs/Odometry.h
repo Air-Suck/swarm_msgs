@@ -1,7 +1,8 @@
 #pragma once
 #include <swarm_msgs/Pose.h>
-#include <nav_msgs/Odometry.h>
-#include <tf/transform_broadcaster.h>
+#include <nav_msgs/msg/odometry.hpp>
+#include <rclcpp/time.hpp>
+#include <tf2/LinearMath/Transform.h>
 
 namespace Swarm {
 class Odometry {
@@ -19,8 +20,8 @@ public:
         stamp(t), velocity(0., 0., 0.), angular_velocity(0., 0., 0.)
     {}
 
-    Odometry(const nav_msgs::Odometry & odom):
-        stamp(odom.header.stamp.toSec()),
+    Odometry(const nav_msgs::msg::Odometry & odom):
+        stamp(rclcpp::Time(odom.header.stamp).seconds()),
         pose_(odom.pose.pose),
         velocity(odom.twist.twist.linear.x, odom.twist.twist.linear.y, odom.twist.twist.linear.z),
         angular_velocity(odom.twist.twist.angular.x, odom.twist.twist.angular.y, odom.twist.twist.angular.z)
@@ -61,9 +62,10 @@ public:
         return std::string(buf);
     }
 
-    nav_msgs::Odometry toRos() const {
-        nav_msgs::Odometry odom;
-        odom.header.stamp = ros::Time(stamp);
+    nav_msgs::msg::Odometry toRos() const {
+        nav_msgs::msg::Odometry odom;
+        odom.header.stamp = rclcpp::Time(
+            static_cast<int64_t>(stamp * 1e9), RCL_ROS_TIME);
         odom.header.frame_id = "world";
         odom.pose.pose = pose_.toROS();
         odom.twist.twist.linear.x = velocity.x();
@@ -76,11 +78,11 @@ public:
         return odom;
     }
 
-    tf::Transform toTF() const {
-        tf::Transform tf;
-        tf.setOrigin(tf::Vector3(pos().x(), pos().y(), pos().z()));
-        tf.setRotation(tf::Quaternion(att().x(), att().y(), att().z(), att().w()));
-        return tf;
+    tf2::Transform toTF() const {
+        tf2::Transform transform;
+        transform.setOrigin(tf2::Vector3(pos().x(), pos().y(), pos().z()));
+        transform.setRotation(tf2::Quaternion(att().x(), att().y(), att().z(), att().w()));
+        return transform;
     }
 
     Quaterniond & att() {

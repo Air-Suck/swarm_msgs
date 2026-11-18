@@ -8,13 +8,13 @@
 #include "yaml-cpp/yaml.h"
 #include <exception>
 #include <set>
-#include <swarm_msgs/LoopEdge.h>
-#include <swarm_msgs/node_detected_xyzyaw.h>
-#include <swarm_msgs/node_detected.h>
+#include <swarm_msgs/msg/loop_edge.hpp>
+#include <swarm_msgs/msg/node_detected_xyzyaw.hpp>
+#include <swarm_msgs/msg/node_detected.hpp>
 
-#include <ros/ros.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <nav_msgs/Path.h>
+#include <rclcpp/time.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <nav_msgs/msg/path.hpp>
 #include "base_types.hpp"
 
 #define UNIDENTIFIED_MIN_ID 1000
@@ -101,7 +101,8 @@ public:
             }
         }
         catch (YAML::ParserException & e){
-            ROS_ERROR("Error while parsing node config %d: %s, exit", _id, e.what());
+            fprintf(stderr, "Error while parsing node config %d: %s, exit\n",
+                    _id, e.what());
             exit(-1);
         }
     }
@@ -144,7 +145,7 @@ public:
     std::map<int, Eigen::Vector3d> detected_nodes_posvar;
     std::map<int, Eigen::Vector3d> detected_nodes_angvar;
 
-    ros::Time stamp;
+    rclcpp::Time stamp{0, 0, RCL_ROS_TIME};
     TsType ts;
     bool is_valid = false;
 
@@ -290,7 +291,7 @@ class SwarmFrame {
 
         int self_id = -1;
 
-        ros::Time stamp;
+        rclcpp::Time stamp{0, 0, RCL_ROS_TIME};
         TsType ts;
 
         int swarm_size() const {
